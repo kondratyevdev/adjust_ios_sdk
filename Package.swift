@@ -6,7 +6,6 @@ let package = Package(
     name: "AdjustSdk",
     products: [
         .library(name: "AdjustSdk", targets: ["AdjustSdk"]),
-        .library(name: "AdjustWebBridge", targets: ["AdjustWebBridge", "AdjustSdk"])
     ],
     dependencies: [
         .package(
@@ -27,17 +26,6 @@ let package = Package(
             cSettings: [
                 .headerSearchPath(""),
                 .headerSearchPath("Internal")
-            ]
-        ),
-        .target(
-            name: "AdjustWebBridge",
-            dependencies: [
-                .product(name: "AdjustSignature", package: "adjust_signature_sdk")
-            ],
-            path: "AdjustBridge",
-            cSettings: [
-                .headerSearchPath(""),
-                .headerSearchPath("../Adjust/include"),
             ]
         ),
     ]

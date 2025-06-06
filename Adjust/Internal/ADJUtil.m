@@ -973,45 +973,11 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 }
 
 + (Class)appTrackingManager {
-    NSString *className = [ADJAdditions adjJoin:@"A", @"T", @"tracking", @"manager", nil];
-    Class class = NSClassFromString(className);
-    return class;
+    return nil;
 }
 
 + (BOOL)trackingEnabled {
-#if ADJUST_NO_IDFA
     return NO;
-#else
-    // return [[ASIdentifierManager sharedManager] isAdvertisingTrackingEnabled];
-    Class adSupportClass = [ADJUtil adSupportManager];
-    if (adSupportClass == nil) {
-        return NO;
-    }
-
-    NSString *keyManager = [ADJAdditions adjJoin:@"shared", @"manager", nil];
-    SEL selManager = NSSelectorFromString(keyManager);
-    if (![adSupportClass respondsToSelector:selManager]) {
-        return NO;
-    }
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    id manager = [adSupportClass performSelector:selManager];
-    NSString *keyEnabled = [ADJAdditions adjJoin:@"is", @"advertising", @"tracking", @"enabled", nil];
-    SEL selEnabled = NSSelectorFromString(keyEnabled);
-    if (![manager respondsToSelector:selEnabled]) {
-        return NO;
-    }
-    
-    NSMethodSignature *msEnabled = [manager methodSignatureForSelector:selEnabled];
-    NSInvocation *invEnabled = [NSInvocation invocationWithMethodSignature:msEnabled];
-    [invEnabled setSelector:selEnabled];
-    [invEnabled setTarget:manager];
-    [invEnabled invoke];
-    BOOL enabled;
-    [invEnabled getReturnValue:&enabled];
-    return enabled;
-#pragma clang diagnostic pop
-#endif
 }
 
 + (NSString *)idfa {
@@ -1019,37 +985,7 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
         return ADJAdjustFactory.idfa;
     }
 
-#if ADJUST_NO_IDFA
     return @"";
-#else
-    // return [[[ASIdentifierManager sharedManager] advertisingIdentifier] UUIDString];
-    Class adSupportClass = [ADJUtil adSupportManager];
-    if (adSupportClass == nil) {
-        return @"";
-    }
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    NSString *keyManager = [ADJAdditions adjJoin:@"shared", @"manager", nil];
-    SEL selManager = NSSelectorFromString(keyManager);
-    if (![adSupportClass respondsToSelector:selManager]) {
-        return @"";
-    }
-    id manager = [adSupportClass performSelector:selManager];
-    NSString *keyIdentifier = [ADJAdditions adjJoin:@"advertising", @"identifier", nil];
-    SEL selIdentifier = NSSelectorFromString(keyIdentifier);
-    if (![manager respondsToSelector:selIdentifier]) {
-        return @"";
-    }
-    id identifier = [manager performSelector:selIdentifier];
-    NSString *keyString = [ADJAdditions adjJoin:@"UUID", @"string", nil];
-    SEL selString = NSSelectorFromString(keyString);
-    if (![identifier respondsToSelector:selString]) {
-        return @"";
-    }
-    NSString *string = [identifier performSelector:selString];
-    return string;
-#pragma clang diagnostic pop
-#endif
 }
 
 + (NSString *)idfv {
@@ -1173,21 +1109,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
         return ADJAdjustFactory.attStatus.intValue;
     }
 
-    Class appTrackingClass = [self appTrackingManager];
-    if (appTrackingClass != nil) {
-        NSString *keyAuthorization = [ADJAdditions adjJoin:@"tracking", @"authorization", @"status", nil];
-        SEL selAuthorization = NSSelectorFromString(keyAuthorization);
-        if ([appTrackingClass respondsToSelector:selAuthorization]) {
-            NSMethodSignature *msAuthorization = [appTrackingClass methodSignatureForSelector:selAuthorization];
-            NSInvocation *invAuthorization = [NSInvocation invocationWithMethodSignature:msAuthorization];
-            [invAuthorization setSelector:selAuthorization];
-            [invAuthorization setTarget:appTrackingClass];
-            [invAuthorization invoke];
-            NSUInteger status;
-            [invAuthorization getReturnValue:&status];
-            return (int)status;
-        }
-    }
     return -1;
 }
 
@@ -1246,22 +1167,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     if (appTrackingClass == nil) {
         return;
     }
-    NSString *requestAuthorization = [ADJAdditions adjJoin:
-                                      @"request",
-                                      @"tracking",
-                                      @"authorization",
-                                      @"with",
-                                      @"completion",
-                                      @"handler:", nil];
-    SEL selRequestAuthorization = NSSelectorFromString(requestAuthorization);
-    if (![appTrackingClass respondsToSelector:selRequestAuthorization]) {
-        return;
-    }
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability"
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    [appTrackingClass performSelector:selRequestAuthorization withObject:completion];
-#pragma clang diagnostic pop
 }
 
 + (NSString *)bundleIdentifier {
@@ -1429,25 +1334,12 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 }
 
 + (BOOL)isAppTrackingTransparencySupported {
-    if (@available(iOS 14.0, tvOS 14.0, *)) {
-        return YES;
-    }
     return NO;
 }
 
 + (BOOL)shouldUseConsentParamsForActivityKind:(ADJActivityKind)activityKind
                                  andAttStatus:(int)attStatus {
-    if ([self isAppTrackingTransparencySupported]) {
-        if (activityKind == ADJActivityKindGdpr ||
-            activityKind == ADJActivityKindSubscription ||
-            activityKind == ADJActivityKindPurchaseVerification) {
-            return NO;
-        }
-        return (attStatus == 3);
-    } else {
-        // if iOS lower than 14 can assume consent
-        return YES;
-    }
+    return NO;
 }
 
 + (void)isEnabledFromActivityStateFile:(void (^)(BOOL))completion {
